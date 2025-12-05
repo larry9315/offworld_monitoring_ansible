@@ -1,0 +1,59 @@
+# ======================================================================
+# Access / OS users
+# ======================================================================
+
+# Main sysadmin account created by Ansible
+offworld_admin_username: "offworld-admin"
+offworld_admin_password: "Marble1Pine2Cough" # real env: store in Ansible Vault
+offworld_admin_shell: "/bin/bash"
+
+# SSH public keys allowed on offworld-admin
+offworld_admin_authorized_keys:
+  # Replace with real keys before use
+  - "ssh-ed25519 AAAA...replace_this... user@machine"
+
+# ======================================================================
+# Base packages for system administration & troubleshooting
+# ======================================================================
+
+common_admin_packages:
+  - curl
+  - wget
+  - vim
+  - htop
+  - git
+  - net-tools
+  - tcpdump
+  - lsof
+  - unzip
+  - tar
+  - jq
+
+# ======================================================================
+# Monitoring stack layout and configuration
+# ======================================================================
+
+monitoring_base_dir: "/opt/monitoring"
+monitoring_docker_network: "monitoring_net"
+
+# Container images (override here to pin versions)
+prometheus_image: "prom/prometheus:latest"
+node_exporter_image: "prom/node-exporter:latest"
+cadvisor_image: "gcr.io/cadvisor/cadvisor:latest"
+grafana_image: "grafana/grafana-oss:latest"
+
+# Host ports to expose services on
+prometheus_port: 9090
+node_exporter_port: 9100
+cadvisor_port: 8080
+grafana_port: 3000
+
+# File system paths derived from base_dir
+prometheus_config_path: "{{ monitoring_base_dir }}/prometheus/prometheus.yml"
+
+grafana_provisioning_dir: "{{ monitoring_base_dir }}/grafana/provisioning"
+grafana_dashboards_dir: "{{ monitoring_base_dir }}/grafana/dashboards"
+
+# Grafana admin credentials (for test only; real env -> Vault / SSO)
+grafana_admin_user: "admin"
+grafana_admin_password: "ChangeMeGrafana1"

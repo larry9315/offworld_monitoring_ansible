@@ -1,0 +1,17 @@
+---
+- name: Provision monitoring servers
+  hosts: monitoring_servers
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+  roles:
+    - common
+    - users
+    - docker
+    - monitoring

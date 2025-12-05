@@ -1,0 +1,33 @@
+---
+- name: Install Docker engine and Python Docker SDK
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - python3-docker
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Ensure Docker service is enabled and started
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Add offworld-admin to docker group
+  ansible.builtin.user:
+    name: "{{ offworld_admin_username }}"
+    groups: docker
+    append: yes
+
+- name: Create monitoring base directory
+  ansible.builtin.file:
+    path: "{{ monitoring_base_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create Docker network for monitoring stack
+  community.docker.docker_network:
+    name: "{{ monitoring_docker_network }}"

@@ -1,0 +1,115 @@
+---
+# Create directories for Prometheus and Grafana provisioning
+- name: Ensure Prometheus config directory exists
+  ansible.builtin.file:
+    path: "{{ monitoring_base_dir }}/prometheus"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create Grafana provisioning and dashboards directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ grafana_provisioning_dir }}/datasources"
+    - "{{ grafana_provisioning_dir }}/dashboards"
+    - "{{ grafana_dashboards_dir }}"
+
+# --- Config files ---
+
+- name: Deploy Prometheus configuration
+  ansible.builtin.template:
+    src: "prometheus.yml.j2"
+    dest: "{{ prometheus_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy Grafana datasource provisioning
+  ansible.builtin.template:
+    src: "grafana-datasource.yml.j2"
+    dest: "{{ grafana_provisioning_dir }}/datasources/datasource.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy Grafana dashboards provisioning
+  ansible.builtin.template:
+    src: "grafana-dashboards.yml.j2"
+    dest: "{{ grafana_provisioning_dir }}/dashboards/dashboards.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Copy host & Docker metrics dashboard JSON
+  ansible.builtin.copy:
+    src: "dashboards/host-docker-metrics.json"
+    dest: "{{ grafana_dashboards_dir }}/host-docker-metrics.json"
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- Containers ---
+
+- name: Run node-exporter container (host metrics)
+  community.docker.docker_container:
+    name: node-exporter
+    image: "{{ node_exporter_image }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ monitoring_docker_network }}"
+    command:
+      - "--path.rootfs=/host"
+    volumes:
+      - "/:/host:ro,rslave"
+    ports:
+      - "{{ node_exporter_port }}:9100"
+
+- name: Run cAdvisor container (Docker metrics)
+  community.docker.docker_container:
+    name: cadvisor
+    image: "{{ cadvisor_image }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ monitoring_docker_network }}"
+    volumes:
+      - "/:/rootfs:ro"
+      - "/var/run:/var/run:ro"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"
+    ports:
+      - "{{ cadvisor_port }}:8080"
+
+- name: Run Prometheus container
+  community.docker.docker_container:
+    name: prometheus
+    image: "{{ prometheus_image }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ monitoring_docker_network }}"
+    volumes:
+      - "{{ prometheus_config_path }}:/etc/prometheus/prometheus.yml:ro"
+    ports:
+      - "{{ prometheus_port }}:9090"
+
+- name: Run Grafana container
+  community.docker.docker_container:
+    name: grafana
+    image: "{{ grafana_image }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ monitoring_docker_network }}"
+    env:
+      GF_SECURITY_ADMIN_USER: "{{ grafana_admin_user }}"
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+      GF_PATHS_PROVISIONING: "/etc/grafana/provisioning"
+    volumes:
+      - "{{ grafana_provisioning_dir }}:/etc/grafana/provisioning:ro"
+      - "{{ grafana_dashboards_dir }}:/var/lib/grafana/dashboards:ro"
+    ports:
+      - "{{ grafana_port }}:3000"
