@@ -4,12 +4,12 @@
 
 # Main sysadmin account created by Ansible
 offworld_admin_username: "offworld-admin"
-offworld_admin_password: "Marble1Pine2Cough" # real env: store in Ansible Vault
+offworld_admin_password: "Marble1Pine2Cough"
 offworld_admin_shell: "/bin/bash"
 
 # SSH public keys allowed on offworld-admin
 offworld_admin_authorized_keys:
-  # Replace with real keys before use
+  # Would replace with real keys before use
   - "ssh-ed25519 AAAA...replace_this... user@machine"
 
 # ======================================================================
